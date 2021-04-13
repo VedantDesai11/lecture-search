@@ -12,3 +12,11 @@ NOT TESTED YET, WONT RUN RIGHT AWAY
 * load_pickle - not required, default false, Loads previously created dictionary for already created and extracted link information.
 * create_directories - not required, default false. Creates the folders needed to for download of the dataset. Select True if running program for the first time
 
+## Using the Pipeline class
+
+Initialize the class in main.py with input arguments. 
+
+Run get_links() on the class to initialize dictionary with youtube links from text file or youtube link.
+
+Run create_dataset() to use links to download the necessary data. 
+
