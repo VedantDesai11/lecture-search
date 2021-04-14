@@ -2,21 +2,20 @@
 
 CLI pipeline to download video, audio, captions and to extract information from them.
 
-NOT TESTED YET, WONT RUN RIGHT AWAY
+## Installing requirements
+
+'''pip install -r requirements.txt'''
 
 ## Input parameters 
 
-* link - required, we can provided a text file with a link sperated by \n or just a single youtube video link
-* dataset_path - not required, defaults to current location of main.py unless mentioned
-* video_resolution - not required, default value 480p. Options - 360p, 480p (recommended), 720p, 1080p
-* load_pickle - not required, default false, Loads previously created dictionary for already created and extracted link information.
-* create_directories - not required, default false. Creates the folders needed to for download of the dataset. Select True if running program for the first time
+* parser.add_argument('--link', required=True, help='Link to youtube video or txt file with videos')
+* parser.add_argument('--dataset_path', default=abspath(getcwd()), required=False, help='Location to save dataset, else in current working directory')
+* parser.add_argument('--video_resolution', required=False, default='480p', help='Video resolution 360p, 480p, 720p, 1080p')
+* parser.add_argument('--load_pickle', required=False, default=False, help='Load previously stored pickle data')
+* parser.add_argument('--create_directories', required=False, default=True, help='Create directories of dataset')
+* parser.add_argument('--download_data', required=True, default=False, help='Specify to download data or not')
 
-## Using the Pipeline class
 
-Initialize the class in main.py with input arguments. 
 
-Run get_links() on the class to initialize dictionary with youtube links from text file or youtube link.
 
-Run create_dataset() to use links to download the necessary data. 
 
