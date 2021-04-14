@@ -4,7 +4,9 @@ CLI pipeline to download video, audio, captions and to extract information from 
 
 ## Installing requirements
 
-'''pip install -r requirements.txt'''
+```
+pip install -r requirements.txt
+```
 
 ## Input parameters 
 
