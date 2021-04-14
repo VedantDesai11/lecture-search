@@ -234,4 +234,9 @@ class Pipeline:
 		self.print_directories()
 		self.save_dict()
 
+	def extract_data(self):
+		pass
+
+
+
 
