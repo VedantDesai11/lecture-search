@@ -20,6 +20,16 @@ parser.add_argument('--download_data', required=True, default=False, help='Speci
 parser.add_argument('--extract_data', required=True, default=False, help='Extract text from video and audio')
 ```
 
+## Running Example 
+
+```
+python3 main.py --link links.txt --download_data True --create_directories True 
+```
+
+Once downloaded and completed, we can avoid having to redownload data by setting --download_data as False and --load_pickle as True
+
+
+
 
 
 
