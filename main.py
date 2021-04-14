@@ -1,18 +1,9 @@
-# import pytube
-# #from pytube import YouTube
-#
-#
-from os import listdir, mkdir, getcwd
-from os.path import isfile, join, abspath
-
-# from tqdm import tqdm
+from os import getcwd
+from os.path import abspath
 
 import argparse
 
-import sys
-
 from pipeline import Pipeline
-
 
 if __name__ == '__main__':
 
@@ -31,13 +22,17 @@ if __name__ == '__main__':
     parser.add_argument('--dataset_path', default=abspath(getcwd()), required=False, help='Location to save dataset, else in current working directory')
     parser.add_argument('--video_resolution', required=False, default='480p', help='Video resolution 360p, 480p, 720p, 1080p')
     parser.add_argument('--load_pickle', required=False, default=False, help='Load previously stored pickle data')
-    parser.add_argument('--create_directories', required=False, default=False, help='Create directories of dataset')
+    parser.add_argument('--create_directories', required=False, default=True, help='Create directories of dataset')
+    parser.add_argument('--download_data', required=True, default=False, help='Specify to download data or not')
 
     args = parser.parse_args()
 
     pipeline = Pipeline(args)
 
-    pipeline.get_links(args.link)
+    if args.download_data == 'True':
+        pipeline.download_data()
 
-    print(args.link, args.video_resolution)
+
+
+
 

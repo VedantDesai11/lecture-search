@@ -1,11 +1,11 @@
-from pytube import YouTube
-from pytube.exceptions import VideoUnavailable
-
+import pickle
 from os import listdir, mkdir
 from os.path import isfile, join
-from tqdm import tqdm
 
-import pickle
+import nltk
+from pytube import YouTube
+from pytube.exceptions import VideoUnavailable
+from tqdm import tqdm
 
 import pytesseract
 import shutil
@@ -15,14 +15,7 @@ try:
  from PIL import Image
 except ImportError:
  import Image
-
-from pytube import YouTube
-
-import cv2
-
-from nltk.corpus import words
-import nltk
-nltk.download('words')
+#nltk.download('words')
 
 import cv2
 
@@ -30,44 +23,66 @@ import cv2
 class Pipeline:
 	def __init__(self, args):
 
-		self.dataset_path = args.dataset_path
+		self.dataset_path = join(args.dataset_path, 'data')
 		load_pickle = args.load_pickle
 		create_directories = args.create_directories
 		self.video_resolution = args.video_resolution
+		self.link_or_file = args.link
 
-		if create_directories:
-			self.create_dataset_directories()
+		if create_directories == 'True':
+			try:
+				self.create_dataset_directories()
+			except:
+				pass
 
-		if load_pickle:
+		if load_pickle == 'True':
 			self.load_dict()
 		else:
 			self.data_dict = {}
+
+		self.get_links()
+
+		print('Youtube links loaded')
 
 	def create_dataset_directories(self):
 		mkdir(self.dataset_path)
 		mkdir(join(self.dataset_path, 'audios'))
 		mkdir(join(self.dataset_path, 'captions'))
 		mkdir(join(self.dataset_path, 'videos'))
-		mkdir(join(self.dataset_path, 'extracted_text'))
+
+		# mkdir(join(self.dataset_path, 'extracted_text'))
 
 	def save_dict(self):
-		with open('data_dict.pickle', 'wb') as handle:
+		with open(join(self.dataset_path, 'data_dict.pickle'), 'wb') as handle:
 			pickle.dump(self.data_dict, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+		print('Dictionary Saved')
 
 	def load_dict(self):
 		with open(join(self.dataset_path, 'data_dict.pickle'), 'rb') as handle:
 			self.data_dict = pickle.load(handle)
 
-	def get_links(self, link_or_file):
-		if link_or_file.split(".")[-1] == 'txt':
-			with open(link_or_file) as textfile:
-				link = textfile.readline()
-				self.add_link_to_dict(link)
+		print('Dictionary Loaded')
+
+	def get_links(self):
+		if self.link_or_file.split(".")[-1] == 'txt':
+			with open(self.link_or_file) as textfile:
+				for link in textfile:
+					link = link.replace('\n', '')
+					print(f"link - {link}")
+
+					try:
+						yt = YouTube(link)
+						self.add_link_to_dict(link)
+					except:
+						pass
+
 
 		else:
-			self.add_link_to_dict(link_or_file)
+			self.add_link_to_dict(self.link_or_file)
 
 	def add_link_to_dict(self, link):
+
 		if link not in self.data_dict:
 			self.data_dict[link] = []
 
@@ -79,6 +94,13 @@ class Pipeline:
 					print(item)
 				else:
 					print(f'{item}/ ({len(listdir(path))} file/s)')
+
+	def print_dictionary(self):
+		for key, value in self.data_dict.items():
+			print(f'link: {key}')
+
+			for key2, data in value.items():
+				print(f'{key2}: {data}')
 
 	def get_captionpath(self, yt):
 		# check if video has english captions
@@ -120,6 +142,17 @@ class Pipeline:
 		except:
 			return False, 0
 
+	def get_categories(self, yt):
+
+		categories = ''
+		for i, category in enumerate(yt.keywords):
+			if i == 0:
+				categories = category
+			else:
+				categories = categories + ', ' + category
+
+		return categories
+
 	def get_extracted_text(self, video_path, title):
 
 		capture = cv2.VideoCapture(video_path)
@@ -150,7 +183,9 @@ class Pipeline:
 		except:
 			return False, 0
 
-	def create_dataset(self):
+	def download_data(self):
+
+		print(self.data_dict.keys())
 
 		for link in tqdm(self.data_dict.keys()):
 
@@ -182,18 +217,18 @@ class Pipeline:
 							video_is_downloaded, video_path = self.get_videopath(yt)
 
 							if video_is_downloaded:
-								# return True if text is extracted without errors
-								text_is_extracted, extracted_text_path = self.get_extracted_text(video_path, yt.title)
 
-								if text_is_extracted:
-									self.data_dict[link] = [
-										video_title,
-										video_category,
-										caption_path,
-										video_path,
-										audio_path,
-										extracted_text_path
-									]
+								# # return True if text is extracted without errors
+								# text_is_extracted, extracted_text_path = self.get_extracted_text(video_path, yt.title)
+								#
+								# if text_is_extracted:
+								self.data_dict[link] = {
+									'video_title' : video_title,
+									'video_category' : video_category,
+									'caption_path' : caption_path,
+									'video_path' : video_path,
+									'audio_path' : audio_path
+								}
 
 
 		self.print_directories()
