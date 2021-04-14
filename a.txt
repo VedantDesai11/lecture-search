@@ -1,0 +1,11 @@
+# Ignore everything
+*
+
+# But not these files...
+!.gitignore
+!main.py
+!pipeline.py
+!pipeline.py
+!README.md
+!requirements.txt
+!links.txt
