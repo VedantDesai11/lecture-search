@@ -24,19 +24,23 @@ parser.add_argument('--extract_data', required=True, default=False, help='Extrac
 
 ## Running Example 
 
+Get links from text file, each link is on a new line
 ```
 python3 main.py --link links.txt --download_data True --create_directories True 
 ```
 
+Add link directly to CLI
+```
+python3 main.py --link https://www.youtube.com/watch?v=gBGoDmLMe3U&list=RDgBGoDmLMe3U&start_radio=1 --download_data True --create_directories True 
+```
+
+Get links from keyword search, each keyword is comma seperated
+```
+python3 main.py --link education,videos --search_keywords True --number_of_links 10 --download_data True --create_directories True 
+```
+
+
 Once downloaded and completed, we can avoid having to redownload data by setting --download_data as False and --load_pickle as True
-
-
-
-
-
-
-
-
 
 
 
