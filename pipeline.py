@@ -19,6 +19,8 @@ except ImportError:
 
 import cv2
 
+import urllib.request
+import re
 
 class Pipeline:
 	def __init__(self, args):
@@ -27,7 +29,9 @@ class Pipeline:
 		load_pickle = args.load_pickle
 		create_directories = args.create_directories
 		self.video_resolution = args.video_resolution
-		self.link_or_file = args.link
+		self.link_file_keyword = args.link
+		self.search_keywords = args.search_keywords
+		self.number_of_links = args.number_of_links
 
 		if create_directories == 'True':
 			try:
@@ -65,26 +69,43 @@ class Pipeline:
 		print('Dictionary Loaded')
 
 	def get_links(self):
-		if self.link_or_file.split(".")[-1] == 'txt':
-			with open(self.link_or_file) as textfile:
-				for link in textfile:
-					link = link.replace('\n', '')
-					print(f"link - {link}")
 
-					try:
-						yt = YouTube(link)
-						self.add_link_to_dict(link)
-					except:
-						pass
+		if self.search_keywords == 'True':
 
+			keywords = self.link_file_keyword.replace(',','+')
+
+			html = urllib.request.urlopen('https://www.youtube.com/results?search_query=' + keywords)
+			video_ids = re.findall(r'watch\?v=(\S{11})', html.read().decode())
+
+			if len(video_ids) > self.number_of_links:
+				video_ids = video_ids[:self.number_of_links]
+
+			for link in video_ids:
+				self.add_link_to_dict("https://www.youtube.com/watch?v=" + link)
 
 		else:
-			self.add_link_to_dict(self.link_or_file)
+			if self.link_file_keyword.split(".")[-1] == 'txt':
+				with open(self.link_file_keyword) as textfile:
+					for link in textfile:
+						link = link.replace('\n', '')
+						print(f"link - {link}")
+						self.add_link_to_dict(link)
+
+
+			else:
+				self.add_link_to_dict(self.link_file_keyword)
 
 	def add_link_to_dict(self, link):
-
+		# check if link exists
 		if link not in self.data_dict:
-			self.data_dict[link] = []
+
+			# check if link is valid and creates a Youtube object
+			try:
+				_ = YouTube(link)
+				self.data_dict[link] = []
+			except:
+				pass
+
 
 	def print_directories(self):
 		for item in listdir(self.dataset_path):

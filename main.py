@@ -19,6 +19,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
     parser.add_argument('--link', required=True, help='Link to youtube video or txt file with videos')
+    parser.add_argument('--search_keywords', required=False, default=False, help='Set to True if no link is provided and only keywords')
+    parser.add_argument('--number_of_links', required=False, default=5, help='Number of videos to get from keyword search')
     parser.add_argument('--dataset_path', default=abspath(getcwd()), required=False, help='Location to save dataset, else in current working directory')
     parser.add_argument('--video_resolution', required=False, default='480p', help='Video resolution 360p, 480p, 720p, 1080p')
     parser.add_argument('--load_pickle', required=False, default=False, help='Load previously stored pickle data')
@@ -35,6 +37,8 @@ if __name__ == '__main__':
 
     if args.extract_data == 'True':
         pipeline.extract_data()
+
+    print(pipeline.data_dict)
 
 
 
