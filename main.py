@@ -26,20 +26,17 @@ if __name__ == '__main__':
     parser.add_argument('--load_pickle', required=False, default=False, help='Load previously stored pickle data')
     parser.add_argument('--create_directories', required=False, default=True, help='Create directories of dataset')
     parser.add_argument('--download_data', required=True, default=False, help='Specify to download data or not')
-    parser.add_argument('--extract_data', required=True, default=False, help='Extract text from video and audio')
 
     args = parser.parse_args()
 
     pipeline = Pipeline(args)
 
+    #_, _ = pipeline.get_extracted_text('/Users/vedantdesai11/Documents/GitHub/lecture-search/data/videos/Enhanced Science 3  The Importance of Animals.mp4','Enhanced Science 3  The Importance of Animals.mp4')
+
     if args.download_data == 'True':
         pipeline.download_data()
-
-    if args.extract_data == 'True':
-        pipeline.extract_data()
-
-    print(pipeline.data_dict)
-
+    #
+    # print(pipeline.data_dict)
 
 
 

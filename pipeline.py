@@ -53,8 +53,7 @@ class Pipeline:
 		mkdir(join(self.dataset_path, 'audios'))
 		mkdir(join(self.dataset_path, 'captions'))
 		mkdir(join(self.dataset_path, 'videos'))
-
-		# mkdir(join(self.dataset_path, 'extracted_text'))
+		mkdir(join(self.dataset_path, 'extracted_text'))
 
 	def save_dict(self):
 		with open(join(self.dataset_path, 'data_dict.pickle'), 'wb') as handle:
@@ -127,6 +126,9 @@ class Pipeline:
 		# check if video has english captions
 		if 'en' in yt.captions:
 			video_caption = yt.captions['en'].xml_captions
+		if 'a.en' in yt.captions:
+			video_caption = yt.captions['a.en'].xml_captions
+
 			caption_path = join(self.dataset_path, f"captions/{yt.title}.xml")
 
 			# write the captions to xml file
@@ -142,6 +144,9 @@ class Pipeline:
 	def get_videopath(self, yt):
 		try:
 			# get video stream object with required attributes
+			for s in yt.streams:
+				print(s)
+
 			video_stream = yt.streams.filter(type='video', res=self.video_resolution, mime_type="video/mp4")
 			video_path = join(self.dataset_path, 'videos')
 			video_stream.first().download(video_path)
@@ -183,26 +188,40 @@ class Pipeline:
 
 		extracted_text_path = join(self.dataset_path, 'extracted_text', f'{title}.txt')
 
-		try:
-			with open(extracted_text_path, "w") as extracted_text_file:
-				s = 0
-				for i in tqdm(range(0, total_frames)):
+		with open(extracted_text_path, "w") as extracted_text_file:
+			s = 0
+			for i in tqdm(range(0, total_frames)):
+				if i % int(fps) == 0:
+					ret, frame = capture.read()
 
-					if i % int(fps) == 0:
+					if ret:
+						extractedInformation = pytesseract.image_to_string(Image.fromarray(frame))
+						words_list = extractedInformation.strip().lower().replace('\n', ' ').split(' ')
 
-						ret, frame = capture.read()
+						extracted_text_file.write(f'second {s}: {" ".join(words_list)}')
 
-						if ret:
-							extractedInformation = pytesseract.image_to_string(Image.fromarray(frame))
-							words_list = extractedInformation.strip().lower().replace('\n', ' ').split(' ')
+					s += 1
 
-							extracted_text_file.write(f'second {s}: {" ".join(words_list)}')
+		return True, extracted_text_path
 
-						s += 1
-
-			return True, extracted_text_path
-		except:
-			return False, 0
+		# try:
+		# 	with open(extracted_text_path, "w") as extracted_text_file:
+		# 		s = 0
+		# 		for i in tqdm(range(0, total_frames)):
+		# 			if i % int(fps) == 0:
+		# 				ret, frame = capture.read()
+		#
+		# 				if ret:
+		# 					extractedInformation = pytesseract.image_to_string(Image.fromarray(frame))
+		# 					words_list = extractedInformation.strip().lower().replace('\n', ' ').split(' ')
+		#
+		# 					extracted_text_file.write(f'second {s}: {" ".join(words_list)}')
+		#
+		# 				s += 1
+		#
+		# 	return True, extracted_text_path
+		# except:
+		# 	return False, 0
 
 	def download_data(self):
 
@@ -229,35 +248,39 @@ class Pipeline:
 					# return True if downloaded and generated path to save caption
 					caption_is_downloaded, caption_path = self.get_captionpath(yt)
 
+					print(caption_is_downloaded)
+
 					if caption_is_downloaded:
+
 						# return True if downloaded and generated path to save audio
 						audio_is_downloaded, audio_path = self.get_audiopath(yt)
 
+						print(audio_is_downloaded)
 						if audio_is_downloaded:
 							# return True if downloaded and generated path to save video
 							video_is_downloaded, video_path = self.get_videopath(yt)
+							print(video_is_downloaded)
 
 							if video_is_downloaded:
 
-								# # return True if text is extracted without errors
-								# text_is_extracted, extracted_text_path = self.get_extracted_text(video_path, yt.title)
-								#
-								# if text_is_extracted:
-								self.data_dict[link] = {
-									'video_title' : video_title,
-									'video_category' : video_category,
-									'caption_path' : caption_path,
-									'video_path' : video_path,
-									'audio_path' : audio_path
-								}
+								# return True if text is extracted without errors
+								text_is_extracted, extracted_text_path = self.get_extracted_text(video_path, yt.title)
+								print(text_is_extracted)
+
+								if text_is_extracted:
+
+									self.data_dict[link] = {
+										'video_title' : video_title,
+										'video_category' : video_category,
+										'caption_path' : caption_path,
+										'video_path' : video_path,
+										'audio_path' : audio_path,
+										'extracted_text_path' : extracted_text_path
+									}
 
 
 		self.print_directories()
 		self.save_dict()
-
-	def extract_data(self):
-		pass
-
 
 
 
