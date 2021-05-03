@@ -35,9 +35,6 @@ if __name__ == '__main__':
 
     if args.download_data == 'True':
         pipeline.download_data()
-    #
-    # print(pipeline.data_dict)
 
-
-
+    pipeline.extract_from_data()
 

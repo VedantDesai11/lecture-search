@@ -1,26 +1,27 @@
 import pickle
-from os import listdir, mkdir
+from os import listdir, mkdir, rename
 from os.path import isfile, join
 
-import nltk
 from pytube import YouTube
 from pytube.exceptions import VideoUnavailable
 from tqdm import tqdm
 
 import pytesseract
-import shutil
-import os
-import random
+
+import time
+
 try:
- from PIL import Image
+	from PIL import Image
 except ImportError:
- import Image
-#nltk.download('words')
+	import Image
 
 import cv2
 
 import urllib.request
 import re
+
+from googleapiclient.discovery import build
+
 
 class Pipeline:
 	def __init__(self, args):
@@ -44,9 +45,13 @@ class Pipeline:
 		else:
 			self.data_dict = {}
 
+		with open('config.txt', 'r') as apifile:
+			self.api_key = apifile.readline()
+
+
 		self.get_links()
 
-		print('Youtube links loaded')
+		print(f'{len(self.data_dict)} youtube links loaded')
 
 	def create_dataset_directories(self):
 		mkdir(self.dataset_path)
@@ -71,7 +76,7 @@ class Pipeline:
 
 		if self.search_keywords == 'True':
 
-			keywords = self.link_file_keyword.replace(',','+')
+			keywords = self.link_file_keyword.replace(',', '+')
 
 			html = urllib.request.urlopen('https://www.youtube.com/results?search_query=' + keywords)
 			video_ids = re.findall(r'watch\?v=(\S{11})', html.read().decode())
@@ -86,8 +91,7 @@ class Pipeline:
 			if self.link_file_keyword.split(".")[-1] == 'txt':
 				with open(self.link_file_keyword) as textfile:
 					for link in textfile:
-						link = link.replace('\n', '')
-						print(f"link - {link}")
+						link = link.replace('\n', '').strip()
 						self.add_link_to_dict(link)
 
 
@@ -104,7 +108,6 @@ class Pipeline:
 				self.data_dict[link] = []
 			except:
 				pass
-
 
 	def print_directories(self):
 		for item in listdir(self.dataset_path):
@@ -126,27 +129,24 @@ class Pipeline:
 		# check if video has english captions
 		if 'en' in yt.captions:
 			video_caption = yt.captions['en'].xml_captions
-		if 'a.en' in yt.captions:
+		elif 'a.en' in yt.captions:
 			video_caption = yt.captions['a.en'].xml_captions
-
-			caption_path = join(self.dataset_path, f"captions/{yt.title}.xml")
-
-			# write the captions to xml file
-			f = open(caption_path, "w")
-			f.write(video_caption)
-			f.close()
-
-			return True, caption_path
-
 		else:
+			print(f'CAPTIONS FOR THIS VIDEO: {yt.captions}')
 			return False, 0
+
+		caption_path = join(self.dataset_path, f"captions/{yt.title}.xml")
+
+		# write the captions to xml file
+		f = open(caption_path, "w")
+		f.write(video_caption)
+		f.close()
+
+		return True, caption_path
 
 	def get_videopath(self, yt):
 		try:
 			# get video stream object with required attributes
-			for s in yt.streams:
-				print(s)
-
 			video_stream = yt.streams.filter(type='video', res=self.video_resolution, mime_type="video/mp4")
 			video_path = join(self.dataset_path, 'videos')
 			video_stream.first().download(video_path)
@@ -168,16 +168,45 @@ class Pipeline:
 		except:
 			return False, 0
 
-	def get_categories(self, yt):
+	def get_video_comments(self, yt):
 
-		categories = ''
-		for i, category in enumerate(yt.keywords):
-			if i == 0:
-				categories = category
+		comments = []
+
+		# creating youtube resource object
+		youtube = build('youtube', 'v3',
+		                developerKey=self.api_key)
+
+		# retrieve youtube video results
+		video_response = youtube.commentThreads().list(
+			part='snippet,replies',
+			videoId=yt.video_id
+		).execute()
+
+		# iterate video response
+		while video_response:
+
+			# extracting required info
+			# from each result object
+			for item in video_response['items']:
+
+				# Extracting comments
+				comment = item['snippet']['topLevelComment']['snippet']['textDisplay']
+
+				comments.append(comment)
+
+				if len(comments) == 20:
+					return comments
+
+			# Again repeat
+			if 'nextPageToken' in video_response:
+				video_response = youtube.commentThreads().list(
+					part='snippet,replies',
+					videoId=yt.video_id
+				).execute()
 			else:
-				categories = categories + ', ' + category
+				break
 
-		return categories
+		return comments
 
 	def get_extracted_text(self, video_path, title):
 
@@ -196,38 +225,19 @@ class Pipeline:
 
 					if ret:
 						extractedInformation = pytesseract.image_to_string(Image.fromarray(frame))
-						words_list = extractedInformation.strip().lower().replace('\n', ' ').split(' ')
+						words = extractedInformation.strip().lower().replace('\n', ' ')
 
-						extracted_text_file.write(f'second {s}: {" ".join(words_list)}')
+						if words:
+							extracted_text_file.write(f'second {s}: {words}\n')
 
 					s += 1
 
 		return True, extracted_text_path
 
-		# try:
-		# 	with open(extracted_text_path, "w") as extracted_text_file:
-		# 		s = 0
-		# 		for i in tqdm(range(0, total_frames)):
-		# 			if i % int(fps) == 0:
-		# 				ret, frame = capture.read()
-		#
-		# 				if ret:
-		# 					extractedInformation = pytesseract.image_to_string(Image.fromarray(frame))
-		# 					words_list = extractedInformation.strip().lower().replace('\n', ' ').split(' ')
-		#
-		# 					extracted_text_file.write(f'second {s}: {" ".join(words_list)}')
-		#
-		# 				s += 1
-		#
-		# 	return True, extracted_text_path
-		# except:
-		# 	return False, 0
-
 	def download_data(self):
 
-		print(self.data_dict.keys())
-
-		for link in tqdm(self.data_dict.keys()):
+		for i, link in enumerate(self.data_dict.keys()):
+			print(f'Downloading link {i + 1}: {link}')
 
 			# create youtube object
 			try:
@@ -238,49 +248,46 @@ class Pipeline:
 
 			else:
 				if not self.data_dict[link]:
-
 					# save video title
 					video_title = yt.title
-
-					# video category
-					video_category = self.get_categories(yt)
 
 					# return True if downloaded and generated path to save caption
 					caption_is_downloaded, caption_path = self.get_captionpath(yt)
 
-					print(caption_is_downloaded)
+					# return True if downloaded and generated path to save audio
+					audio_is_downloaded, audio_path = self.get_audiopath(yt)
 
-					if caption_is_downloaded:
+					# return True if downloaded and generated path to save video
+					video_is_downloaded, video_path = self.get_videopath(yt)
 
-						# return True if downloaded and generated path to save audio
-						audio_is_downloaded, audio_path = self.get_audiopath(yt)
+					try:
+						video_comments = self.get_video_comments(yt)
+					except:
+						video_comments = []
 
-						print(audio_is_downloaded)
-						if audio_is_downloaded:
-							# return True if downloaded and generated path to save video
-							video_is_downloaded, video_path = self.get_videopath(yt)
-							print(video_is_downloaded)
-
-							if video_is_downloaded:
-
-								# return True if text is extracted without errors
-								text_is_extracted, extracted_text_path = self.get_extracted_text(video_path, yt.title)
-								print(text_is_extracted)
-
-								if text_is_extracted:
-
-									self.data_dict[link] = {
-										'video_title' : video_title,
-										'video_category' : video_category,
-										'caption_path' : caption_path,
-										'video_path' : video_path,
-										'audio_path' : audio_path,
-										'extracted_text_path' : extracted_text_path
-									}
-
+					self.data_dict[link] = {
+						'video_title': video_title,
+						'caption_path': caption_path,
+						'video_path': video_path,
+						'audio_path': audio_path,
+						'video_comments' : video_comments,
+						'extracted_text_path': None,
+						'e_r_extracted_path': None
+					}
 
 		self.print_directories()
 		self.save_dict()
 
+	def extract_from_data(self):
 
+		for i, link in enumerate(self.data_dict.keys()):
+			print(f'Extracting from link {i + 1}: {link}')
 
+			# Extracting text from video
+			if len(self.data_dict[link]) != 0:
+				# return True if text is extracted without errors
+				text_is_extracted, extracted_text_path = self.get_extracted_text(self.data_dict[link]['video_path'],
+				                                                                 self.data_dict[link]['video_title'])
+
+				if text_is_extracted:
+					self.data_dict[link]['extracted_text_path'] = extracted_text_path
