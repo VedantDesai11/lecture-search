@@ -6,6 +6,8 @@ from pytube import YouTube
 from pytube.exceptions import VideoUnavailable
 from tqdm import tqdm
 
+from multiprocessing import Process
+
 import pytesseract
 
 import time
@@ -208,7 +210,7 @@ class Pipeline:
 
 		return comments
 
-	def get_extracted_text(self, video_path, title):
+	def get_extracted_text(self, video_path, title, link):
 
 		capture = cv2.VideoCapture(video_path)
 
@@ -219,7 +221,7 @@ class Pipeline:
 
 		with open(extracted_text_path, "w") as extracted_text_file:
 			s = 0
-			for i in tqdm(range(0, total_frames)):
+			for i in range(0, total_frames):
 				if i % int(fps) == 0:
 					ret, frame = capture.read()
 
@@ -232,13 +234,15 @@ class Pipeline:
 
 					s += 1
 
-		return True, extracted_text_path
+
+		self.data_dict[link]['extracted_text_path'] = extracted_text_path
+
+		print(f'Completed: {i}:{link}')
 
 	def download_data(self):
+		#print(f'Downloading link {i + 1}: {link}')
 
 		for i, link in enumerate(self.data_dict.keys()):
-			print(f'Downloading link {i + 1}: {link}')
-
 			# create youtube object
 			try:
 				yt = YouTube(link)
@@ -279,15 +283,12 @@ class Pipeline:
 		self.save_dict()
 
 	def extract_from_data(self):
-
 		for i, link in enumerate(self.data_dict.keys()):
-			print(f'Extracting from link {i + 1}: {link}')
+
+			print(f'Working on video: {i}:{link}')
 
 			# Extracting text from video
 			if len(self.data_dict[link]) != 0:
-				# return True if text is extracted without errors
-				text_is_extracted, extracted_text_path = self.get_extracted_text(self.data_dict[link]['video_path'],
-				                                                                 self.data_dict[link]['video_title'])
+				p = Process(target=self.get_extracted_text, args=(self.data_dict[link]['video_path'], self.data_dict[link]['video_title'], link))
+				p.start()
 
-				if text_is_extracted:
-					self.data_dict[link]['extracted_text_path'] = extracted_text_path
