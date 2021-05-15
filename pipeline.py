@@ -239,56 +239,57 @@ class Pipeline:
 
 		print(f'Completed: {i}:{link}')
 
-	def download_data(self):
-		#print(f'Downloading link {i + 1}: {link}')
+	def begin_downloading(self):
 
 		for i, link in enumerate(self.data_dict.keys()):
-			# create youtube object
-			try:
-				yt = YouTube(link)
+			self.download_data(link)
 
-			except VideoUnavailable:
-				print(f'Video {link} is unavaialable, skipping.')
-
-			else:
-				if not self.data_dict[link]:
-					# save video title
-					video_title = yt.title
-
-					# return True if downloaded and generated path to save caption
-					caption_is_downloaded, caption_path = self.get_captionpath(yt)
-
-					# return True if downloaded and generated path to save audio
-					audio_is_downloaded, audio_path = self.get_audiopath(yt)
-
-					# return True if downloaded and generated path to save video
-					video_is_downloaded, video_path = self.get_videopath(yt)
-
-					try:
-						video_comments = self.get_video_comments(yt)
-					except:
-						video_comments = []
-
-					self.data_dict[link] = {
-						'video_title': video_title,
-						'caption_path': caption_path,
-						'video_path': video_path,
-						'audio_path': audio_path,
-						'video_comments' : video_comments,
-						'extracted_text_path': None,
-						'e_r_extracted_path': None
-					}
+		time.sleep(5)
 
 		self.print_directories()
 		self.save_dict()
 
+	def download_data(self, link):
+		# create youtube object
+		try:
+			yt = YouTube(link)
+
+		except VideoUnavailable:
+			print(f'Video {link} is unavailable, skipping.')
+
+		else:
+			if not self.data_dict[link]:
+				# save video title
+				video_title = yt.title
+
+				# return True if downloaded and generated path to save caption
+				caption_is_downloaded, caption_path = self.get_captionpath(yt)
+
+				# return True if downloaded and generated path to save audio
+				audio_is_downloaded, audio_path = self.get_audiopath(yt)
+
+				# return True if downloaded and generated path to save video
+				video_is_downloaded, video_path = self.get_videopath(yt)
+
+				try:
+					video_comments = self.get_video_comments(yt)
+				except:
+					video_comments = []
+
+				self.data_dict[link] = {
+					'video_title': video_title,
+					'caption_path': caption_path,
+					'video_path': video_path,
+					'audio_path': audio_path,
+					'video_comments' : video_comments,
+					'extracted_text_path': None,
+					'e_r_extracted_path': None
+				}
+
 	def extract_from_data(self):
 		for i, link in enumerate(self.data_dict.keys()):
-
-			print(f'Working on video: {i}:{link}')
-
 			# Extracting text from video
-			if len(self.data_dict[link]) != 0:
-				p = Process(target=self.get_extracted_text, args=(self.data_dict[link]['video_path'], self.data_dict[link]['video_title'], link))
-				p.start()
+			p = Process(target=self.get_extracted_text, args=(self.data_dict[link]['video_path'], self.data_dict[link]['video_title'], link))
+			p.start()
+
 

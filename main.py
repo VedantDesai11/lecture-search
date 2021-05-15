@@ -9,12 +9,11 @@ if __name__ == '__main__':
 
     # Path to dataset files
     dataset_path = '/content/Lecture_Recommendation/'
-    links_csv_path = 'youtube_links.csv'
 
     print(f'Current working directory {abspath(getcwd())}')
 
     # Video resolution 360p, 480p, 720p, 1080p
-    video_resolution = '480p'
+    video_resolution = '720p'
 
     parser = argparse.ArgumentParser()
 
@@ -29,12 +28,11 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
+    # Initialize pipeline object with input arguments
     pipeline = Pipeline(args)
 
-    #_, _ = pipeline.get_extracted_text('/Users/vedantdesai11/Documents/GitHub/lecture-search/data/videos/Enhanced Science 3  The Importance of Animals.mp4','Enhanced Science 3  The Importance of Animals.mp4')
-
     if args.download_data == 'True':
-        pipeline.download_data()
+        pipeline.begin_downloading()
 
     pipeline.extract_from_data()
 
